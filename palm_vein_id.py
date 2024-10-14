@@ -112,7 +112,7 @@ def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
         visited_pixels[(new_x, new_y)]['probability'] = max(visited_pixels[(new_x, new_y)]['probability'], max_probability)
     # Add the new pheromone difference to the 'pheromone_differences' field
         visited_pixels[(new_x, new_y)]['pheromone'] += pheromone_matrix[update_pheromone_at]
-    # Update the 'flag' field to 1
+    # Update the 'flag' field to 1, I dont think this is necessary
         visited_pixels[(new_x, new_y)]['flag'] = 1
     
     return ant_position, pheromone_matrix, visited_pixels
@@ -128,7 +128,7 @@ def initialization(img_array):
     heuristic_matrix = np.full_like(img_array, 0.1, dtype=np.float32)
     
     # Compute initial intensity variation V_c(i,j)
-    # Check the range of the loops; for edge pixels, the range should be adjusted
+    
     for i in range(2, height-2):
         for j in range(2, width-2):
             V_c = abs(img_array[i-2, j-1] - img_array[i+2, j+1]) + \
@@ -142,6 +142,7 @@ def initialization(img_array):
             
             heuristic_matrix[i, j] = V_c
     
+    
     # Compute V_max
     V_max = np.sum(heuristic_matrix)
     
@@ -149,7 +150,7 @@ def initialization(img_array):
     if V_max != 0:
         heuristic_matrix /= V_max
     
-    print(f"Sample of updated heuristic matrix:\n{heuristic_matrix[:height, :width]}")
+  #  print(f"Sample of heuristic matrix (created once and constant):\n{heuristic_matrix[:10, :10]}")
     
     return heuristic_matrix
 
@@ -168,8 +169,8 @@ def main():
     if img.mode != 'L':
         img = img.convert('L')
     
-    # Convert image to numpy array
-    img_array = np.array(img)
+    # Convert image to numpy array as type float
+    img_array = np.array(img, dtype=np.float32)
     
     # Get image dimensions
     height, width = img_array.shape
