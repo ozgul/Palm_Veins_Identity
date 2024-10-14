@@ -1,19 +1,7 @@
 import numpy as np
 from PIL import Image
 import os
-
-
-# Global variable to store the pixels visited by at least one ant
-ant_position = {}
-
-# Global variable to track accumulated pixels and their data 
-# to be used for global update of pheromone values is a dict of dict
-visited_pixels = {}
-
-# Global variable
-heuristic_matrix = None
-# Global variable 
-pheromone_matrix = None
+import copy
 
 # Function to update the pheromone values globally
 def global_pheromone_update(pheromone_matrix, visited_pixels):
@@ -46,7 +34,7 @@ def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
 
     # Iterate over the ant_position to find the first key with a flag of 1
     for pixel, flag in list(ant_position.items()):
-        if flag == 1:  # Check if the flag is 1
+        if flag == 1 :  # Check if the flag is 1 and ant is not on the edge of the image
             x, y = pixel  # Unpack the pixel tuple into x and y
             # break  # Exit the loop once the first non-zero flag (1) is found
         height, width = pheromone_matrix.shape
@@ -55,7 +43,26 @@ def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
     # Find out the (0,0) point of the image depending on the height and width of the image to find the coordinates of the
     # edges and corners of the image to write specific possible movements array
      
-        movements = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
+       # movements = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
+        if x == 0 and y == 0:  # Top left corner
+            movements = [(0, 1), (0, -1), (-1, 1)]
+        elif x == 0 and y == width - 1:  # Top right corner
+            movements = [(0, -1), (-1, 0), (-1, -1)]
+        elif x == 0 and y == -height + 1 :  # Bottom left corner
+            movements = [(0, 1), (1, 0), (1, -1)]
+        elif x == width - 1 and y == -height + 1:  # Bottom right corner
+            movements = [(0, 1), (-1, 0), (-1, 1)]
+        elif x == 0:  # Left edge
+            movements = [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0)]
+        elif x == width - 1:  # Right edge
+            movements = [(0, -1), (0, 1), (-1, -1), (-1, 0), (-1, 1)]
+        elif y == 0:  # Top edge
+            movements = [(-1, 0), (1, 0), (0, -1), (1, -1), (1, -1)]
+        elif y == width - 1:  # Bottom edge
+            movements = [(-1, 0), (1, 0), (0, -1), (1, -1), (-1, -1)]
+        else:
+            movements = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+    # if the ant is on the corners of the image the possible movements are limited, add an if statement to handle this case 
     # Compute probabilities for each possible movement and store in array probabilities
     # Each element is a tuple of probability and coordinates
         probabilities = []
@@ -117,18 +124,10 @@ def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
     
     return ant_position, pheromone_matrix, visited_pixels
 
-
-def initialization(img_array):
-    global heuristic_matrix
-    
+def initialization(img_array,heuristic_matrix):
     # Get image dimensions
     height, width = img_array.shape
-    
-    # Initialize heuristic_matrix
-    heuristic_matrix = np.full_like(img_array, 0.1, dtype=np.float32)
-    
     # Compute initial intensity variation V_c(i,j)
-    
     for i in range(2, height-2):
         for j in range(2, width-2):
             V_c = abs(img_array[i-2, j-1] - img_array[i+2, j+1]) + \
@@ -141,21 +140,25 @@ def initialization(img_array):
                   abs(img_array[i, j-1] - img_array[i, j+1])
             
             heuristic_matrix[i, j] = V_c
-    
-    
+      
     # Compute V_max
-    V_max = np.sum(heuristic_matrix)
-    
+    V_max = np.sum(heuristic_matrix) 
     # Normalize heuristic_matrix
     if V_max != 0:
-        heuristic_matrix /= V_max
-    
-  #  print(f"Sample of heuristic matrix (created once and constant):\n{heuristic_matrix[:10, :10]}")
-    
+        heuristic_matrix /= V_max  
+  #  print(f"Sample of heuristic matrix (created once and constant):\n{intensity_matrix[:10, :10]}") 
     return heuristic_matrix
 
-
 def main():
+# Stores the pixels visited by at least one ant
+    ant_position = {}
+# Tracks accumulated pixels and their data 
+# to be used for global update of pheromone values is a dict of dict
+    visited_pixels = {}
+
+    heuristic_matrix = None
+    pheromone_matrix = None
+
     # Directory containing the image
     image_directory = r'C:\Users\ozgul\Documents\GitHub\Palm_Veins_Identity\images'
     image_filename = 'CroppedNoBGLightClose.png'
@@ -175,32 +178,48 @@ def main():
     # Get image dimensions
     height, width = img_array.shape
     
-    global pheromone_matrix  # Declare pheromone_matrix as global   
+    #global pheromone_matrix  # Declare pheromone_matrix as global   
     # Create pheromone_matrix with random values < 10; should be set to 0
     pheromone_matrix = np.random.rand(height, width).astype(np.float32)
 
-    global ant_position  # Declare ant_position as global
+    #global ant_position  # Declare ant_position as global
     # Initialize ant_position with 1 for all pixels in the image
     ant_position = {(x, y): 1 for x in range(width) for y in range(height)}
 
-    global visited_pixels  # Declare visited_pixels as global
+    #global visited_pixels  # Declare visited_pixels as global
     # Initialize visited_pixels with 0 for all pixels in the image
     visited_pixels = {(x, y): {'probability': 0.0, 'pheromone': 1.0, 'flag': 0} for x in range(width) for y in range(height)}
     print(f"image in numpy :\n{img_array}")
+    # Initialize heuristic_matrix
+    heuristic_matrix = np.full_like(img_array, 0.1, dtype=np.float32)
     # Create, Initialize and populate heuristic_matrix from the image
-    initialization(img_array)
+    heuristic_matrix_copy = copy.deepcopy(heuristic_matrix)
+    heuristic_matrix = initialization(img_array,heuristic_matrix_copy)
 
     # Move the ants on the image for L many times (iterations)
     # We test it initially for one iteration
     # Each function call will move all the ants to a new pixel
     # Construction of L steps of the ant movement
-    for _ in range(1):
-        ant_position, pheromone_matrix, visited_pixels = move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels)
-    # Update the pheromone values globally
-        pheromone_matrix = global_pheromone_update(pheromone_matrix, visited_pixels)
+    for _ in range(2):
+        # Create deep copies of the variables before passing them to the function
+        ant_position_copy = copy.deepcopy(ant_position)
+        pheromone_matrix_copy = copy.deepcopy(pheromone_matrix)
+        visited_pixels_copy = copy.deepcopy(visited_pixels)
+        # Move the ants
+        # Pass deep copies to the function
+        updated_ant_position, updated_pheromone_matrix, updated_visited_pixels = move_ant(
+            ant_position_copy, pheromone_matrix_copy, heuristic_matrix, visited_pixels_copy
+        )
+        # Assign returned updated values to the original variables
+        ant_position = updated_ant_position
+        pheromone_matrix = updated_pheromone_matrix
+        visited_pixels = updated_visited_pixels
+        # Create a deep copy before global update
+        pheromone_matrix_copy = copy.deepcopy(pheromone_matrix)
+        # Update the pheromone values globally
+        # Update the pheromone matrix globally and reassign the original
+        pheromone_matrix = global_pheromone_update(pheromone_matrix_copy, updated_visited_pixels)
     
-    
-
     print(f"Image shape: {img_array.shape}")
     print(f"Pheromone matrix shape: {pheromone_matrix.shape}")
     print(f"Heuristic matrix shape: {heuristic_matrix.shape}")
