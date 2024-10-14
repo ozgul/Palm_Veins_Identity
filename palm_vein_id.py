@@ -213,7 +213,10 @@ def main():
     print(f"Heuristic matrix shape: {heuristic_matrix.shape}")
     print(f"Sample of pheromone matrix:\n{pheromone_matrix[:10, :10]}")
     print(f"Sample of heuristic matrix (created once and constant):\n{heuristic_matrix[:10, :10]}")
-
+    # Write the pheromone_matrix to a file
+    output_path = os.path.join(image_directory, 'pheromone_matrix.npy')
+    np.save(output_path, pheromone_matrix)
+    print(f"Pheromone matrix saved to {output_path}")
 
 if __name__ == "__main__":
     main()
