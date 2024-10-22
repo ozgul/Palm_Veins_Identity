@@ -43,27 +43,63 @@ def lbp_descriptor(radius, neighbors, center_pixel):
         raise ValueError("Invalid radius or number of neighbors")
     # Write another list for the half circle and the quarter circle use existing lists
     
-def initialization(img_array, mslbp_matrix):
+def compute_mslbp(img_array, win_template):
 
-    # mslbp_matrix = np.full_like(img_array, 0.1, dtype=np.float32)
-    # Define a list of radius values
-    radius_list = [1, 2, 3, 4, 5, 7]
-    neighbors = 8 # 8 or 16 neighbors
+    mslbp_matrix = np.full_like(img_array, 0.1, dtype=np.float32)
+
+    # Initialize current_template
+    current_template = [[((i, j), 0) for j in range(img_array.shape[1])] for i in range(img_array.shape[0])]
+
+    # Define key value pairs of radius and neighbs
+    radius_neighbs = [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 16)]
     # Get image dimensions
     height, width = img_array.shape
-    #iterate over the image array 
-    index = radius_list[3]
-    for i in range(index, height - index):
-        for j in range(index, width - index):
-            # Get the pixel value
-            pixel = (i, j)
-            # Get the neighborhood pixels
-            neighborhood_pixels = lbp_descriptor(index, neighbors, pixel) # adjust the radius and number of neighbors
-            for k in range(0, len(neighborhood_pixels)-1):
-                if img_array[i, j] <= img_array[neighborhood_pixels[k]]:
-                    mslbp_matrix[i, j] = mslbp_matrix[i, j] + 2**k
-                else:
-                    mslbp_matrix[i, j] = mslbp_matrix[i, j] + 0
+    # fix a radius and neighbs value from radius_neighbs
+    index = radius_neighbs[5][0] # index should be 6
+    neighbors = radius_neighbs[5][1] # neighbors should be 8
+    # initialize the current_template with the radius and neighbors set to the fixed values
+    current_template = [[((index, neighbors), 0) for j in range(img_array.shape[1])] for i in range(img_array.shape[0])]
+    # initialize the win_template with the radius and neighbors set to the fixed values
+    win_template = [[((index, neighbors), 0) for j in range(img_array.shape[1])] for i in range(img_array.shape[0])]
+    # Iterate over the radius_neighbs
+    for radius, neighbors in radius_neighbs:
+        # iterate over the image array; ignore the edges for now
+        for i in range(radius, height - radius):
+            for j in range(radius, width - radius):
+                # Get the pixel value
+                pixel = (i, j)
+                # Get the neighborhood pixels
+                neighborhood_pixels = lbp_descriptor(radius, neighbors, pixel)
+                for k in range(0, len(neighborhood_pixels)):
+                    if img_array[i, j] <= img_array[neighborhood_pixels[k]]:
+                        mslbp_matrix[i, j] = mslbp_matrix[i, j] + 2**k
+                    else:
+                        mslbp_matrix[i, j] = mslbp_matrix[i, j] + 0
+                # contains elements from each template; will be used to choose max as winning element
+                # the corresponding radius and neighbors is stored in the radius_neighbs list
+                current_template[i][j] = ((radius, neighbors), mslbp_matrix[i][j])
+                win_template[i][j] = max(current_template[i][j], win_template[i][j], key=lambda x: x[1])
+    # return win_template
+    # write a function to produce mslbp_matrix from the win_template 
+    # include rest of the code in the function
+    
+    # Normalize the mslbp_matrix to the range [0, 255]
+    # If the radius is 16 then normalize to [0, 65535]
+    mslbp_matrix_normalized = (255 * (mslbp_matrix - np.min(mslbp_matrix)) / (np.max(mslbp_matrix) - np.min(mslbp_matrix))).astype(np.uint8)
+    
+    # Convert the normalized matrix to an image
+    mslbp_image = Image.fromarray(mslbp_matrix_normalized)
+    
+    # Save the image
+    output_image_path = os.path.join(image_directory, 'mslbp_image.png')
+    mslbp_image.save(output_image_path)
+    print(f"Multi-scale local binary pattern image saved to {output_image_path}")
+    
+    # Write the mslbp_matrix to a file
+    output_path = os.path.join(image_directory, 'mslbp.npy')
+    np.save(output_path, mslbp_matrix)
+    print(f"Multi-scale local binary pattern matrix saved to {output_path}")
+
     return mslbp_matrix
 
 def main():
@@ -81,13 +117,14 @@ def main():
     # Convert image to numpy array as type float
     img_array = np.array(img, dtype=np.float32) 
     
-    # Initialize mslbp_matrix
-    mslbp_matrix = np.full_like(img_array, 0.0, dtype=np.float32)
+    # Initialize win_template
+    win_template = [[((i, j), 0) for j in range(img_array.shape[1])] for i in range(img_array.shape[0])]
     # Create a copy to send to the function
-    mslbp_matrix_copy = copy.deepcopy(mslbp_matrix)
+    win_template_copy = copy.deepcopy(win_template)
     # Create, Initialize and populate from the image the multi scale local binary pattern matrix
-    mslbp_matrix = initialization(img_array,mslbp_matrix_copy)
-
+    # im
+    win_template = compute_mslbp(img_array,win_template_copy)
+    # correct the rest of the code to migrate inside the compute_mslbp function
     # Normalize the mslbp_matrix to the range [0, 255]
     # If the radius is 16 then normalize to [0, 65535]
     mslbp_matrix_normalized = (255 * (mslbp_matrix - np.min(mslbp_matrix)) / (np.max(mslbp_matrix) - np.min(mslbp_matrix))).astype(np.uint8)
