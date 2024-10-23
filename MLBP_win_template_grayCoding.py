@@ -45,22 +45,6 @@ def lbp_descriptor(radius, neighbors, center_pixel):
     
     # Write another list for the half circle and the quarter circle use existing lists
 
-# prints the matrix to an image and saves the matrix to a file
-def print_image(matrix, output_path):
-    
-    # Convert matrix to an image
-    image_to_save = Image.fromarray(matrix)
-    # Save the image
-    output_image_path = os.path.join(output_path, 'mslbp_to_grayCode_image.png')
-    mslbp_to_grayCode_image.save(output_image_path)
-    print(f"Multi-scale local binary pattern encoded with Gray Code saved to {output_image_path}")
-    # Write the matrix to a file
-    output_path = os.path.join(output_path, 'mslbp_to_grayCode.npy')
-    np.save(output_path, mslbp_to_grayCode.npy)
-    print(f"Multi-scale local binary pattern matrix saved to {output_path}")
-    return None
-
-
 # this function populates the mslbp_to_grayCode from the win_template 
 # should be updated to encode the pixels obtained from aco of img_array
 def win_template_to_grayCode(img_array, win_template, mslbp_to_grayCode):
@@ -71,7 +55,7 @@ def win_template_to_grayCode(img_array, win_template, mslbp_to_grayCode):
     # iterate over the win_template and generate mslbp_to_grayCode 
     for i in range(0, height - 1):
             for j in range(0, width - 1):
-                 mslbp_to_grayCode[i][j] = radius_gray_coding[win_template[i][j][0][0] - 1]
+                mslbp_to_grayCode[i][j] = radius_gray_coding[(win_template[i][j][0][0] - 1)]
     # return the mslbp_matrix
     return mslbp_to_grayCode
 
@@ -81,7 +65,6 @@ def compute_mslbp(img_array, win_template):
     # Define key value pairs of radius and neighbs
     RADIUS_NEIGHBS = [(1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 16)]
     radius_neighbs = RADIUS_NEIGHBS
- #   length = len(neighborhood_pixels)
     # Get image dimensions
     height, width = img_array.shape
     # initialize the current_template with the radius and neighbors set to the fixed values
@@ -89,8 +72,7 @@ def compute_mslbp(img_array, win_template):
     # initialize the win_template with the radius and neighbors set to the fixed values
     win_template = [[((radius_neighbs[0][0], radius_neighbs[0][1]), 0) for j in range(img_array.shape[1])] for i in range(img_array.shape[0])]
     # Iterate over the radius_neighbs
-    for radius, neighbors in radius_neighbs:
-        
+    for radius, neighbors in radius_neighbs[:5]:
         # iterate over the image array; ignore the edges for now
         for i in range(radius, height - radius):
             for j in range(radius, width - radius):
@@ -117,7 +99,6 @@ def main():
     # Directory containing the image
     image_directory = r'C:\Users\ozgul\Documents\GitHub\Palm_Veins_Identity\images'
     image_filename = 'camera128.bmp'
-
     # Full path to the image
     image_path = os.path.join(image_directory, image_filename)
     # Read the image
@@ -126,10 +107,9 @@ def main():
     if img.mode != 'L':
         img = img.convert('L')
     # Convert image to numpy array as type float
-    img_array = np.array(img, dtype=np.float32) 
-    
+    img_array = np.array(img, dtype=np.float32)   
     # Initialize win_template
-    win_template = [[((i, j), 0) for j in range(img_array.shape[1])] for i in range(img_array.shape[0])]
+    win_template = np.zeros((img_array.shape[0], img_array.shape[1]), dtype=[('x', 'i8'), ('y', 'i8'), ('z', 'i8')])
     # Create a copy to send to the function
     win_template_copy = copy.deepcopy(win_template)
     # Create the winning template 
@@ -140,7 +120,17 @@ def main():
     mslbp_to_grayCode_copy = copy.deepcopy(mslbp_to_grayCode)
     mslbp_to_grayCode = win_template_to_grayCode(img_array, win_template, mslbp_to_grayCode_copy)
 
-    print_image(mslbp_to_grayCode, image_directory)
+    # Convert matrix to an image
+    mslbp_to_grayCode_image = Image.fromarray(mslbp_to_grayCode, mode='L')
+    # Save the image
+    output_image_path = os.path.join(image_directory, 'mslbp_to_grayCode_image.png')
+    mslbp_to_grayCode_image.save(output_image_path)
+    print(f"Multi-scale local binary pattern encoded with Gray Code saved to {output_image_path}")
+    # Write the matrix to a file
+    output_path = os.path.join(image_directory, 'mslbp_to_grayCode')
+    np.save(output_path, mslbp_to_grayCode)
+    print(f"Multi-scale local binary pattern matrix saved to {output_path}")
+
 
 if __name__ == "__main__":
     main()
