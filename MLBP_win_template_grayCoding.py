@@ -10,7 +10,6 @@ import sys
 # the selected radius and number of neighbors
 def lbp_descriptor(radius, neighbors, center_pixel, height, width):
     x, y = center_pixel
-    # Define height and width
 
     corners = [(0,0),(width,0),(0,-height),(width,-height)]
     edges = [(x,0),(x,-height),(0,y),(width,y)]
@@ -30,7 +29,7 @@ def lbp_descriptor(radius, neighbors, center_pixel, height, width):
             return pixel_list
     elif (x, y) in edges: # for all radiuses, neighbors is 5	
         if (x,y) == (x, 0) & x != 0 & x >= radius & x <= width - radius: # upper edge                                                                                                                     -:  # upper edge
-            pixel_list = [(x-radius, 0), (x - radius,-1), (x, -1), (x+radius, -1), (x+radius, 0)]
+            pixel_list = [(x-radius, 0), (x - radius,-radius), (x, -radius), (x+radius, -radius), (x+radius, 0)]
             return pixel_list
         elif (x,y) == (x, -height) & x != 0 & x >= radius & x <= width - radius  :  # bottom edge
             pixel_list = [(x-radius, -height), (x - radius,-height+radius), (x, -height+radius), (x+radius, -height+radius), (x+radius, -height)]
@@ -150,19 +149,18 @@ def main():
     # Convert to grayscale if it's not already
     if aco_img.mode != 'L':
         aco_img = aco_img.convert('L')
-    # Convert image to numpy array
+    # Convert image to numpy array; row, column should be accessed as y, x, since this is a numpy array
     aco_img_array = np.array(aco_img, dtype=np.uint8)
     # Extract black pixels (value 0)
     black_pixels = [(x, y) for y in range(aco_img_array.shape[0]) for x in range(aco_img_array.shape[1]) if aco_img_array[y, x] == 0]
     # identifies which pixels to iterate to compute the winning template from the original image
     mslbp_template = black_pixels
-
     # Initialize win_template
     win_template = np.zeros((img_array.shape[0], img_array.shape[1]), dtype=[('x', 'i8'), ('y', 'i8'), ('z', 'i8')])
     # Create a copy to send to the function
     win_template_copy = copy.deepcopy(win_template)
-    # Create the winning template 
-    win_template = compute_mslbp(img_array,win_template_copy, mslbp_template)
+    # Create the winning template; is a numpy array; each element is a tuple of (radius, neighbors) and the lbp value
+    win_template = compute_mslbp(img_array, win_template_copy, mslbp_template)
     # Initialize and populate from the image the multi scale local binary pattern matrix
     mslbp_to_grayCode = np.zeros_like(img_array)
     # Create a copy to send to the function
