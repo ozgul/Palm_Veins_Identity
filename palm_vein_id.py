@@ -24,10 +24,11 @@ def global_pheromone_update(pheromone_matrix, visited_pixels):
 # will be called by L many times; process over the ants located at pixels of the image
 def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
     
-    alpha = 1
-    beta = 2
+    alpha = 1.0
+    beta = 1.0
     decay_coefficient   = 0.1
     initial_pheromone = 0.1
+    rho = 0.1
 
     # Get the first key with nonzero flag from ant_position
     # that contains pixels with at least one ant
@@ -73,6 +74,8 @@ def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
                 probabilities.append((probability, (new_x, new_y)))
 
     # Find the maximum probability and assign the corresponding (x, y) to new_x, new_y
+    # if all the prob are the same or there are same values then how should ant behave
+    # rewrite the code
         if probabilities:
             max_probability, (new_x, new_y) = max(probabilities, key=lambda item: item[0])
         else:
@@ -81,6 +84,7 @@ def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
 
     # the flag of the new position of the ant should be 1 
     # Update the specific key (x, y) with the value 1
+    # add a new variable moves and if max is found move the ant otherwise dont move
         ant_position[(new_x,new_y)] = 1
     # the flag of the previous position of the ant should be 0
         ant_position[(x,y)] = 0 
@@ -104,7 +108,7 @@ def move_ant(ant_position, pheromone_matrix, heuristic_matrix, visited_pixels):
     # Ensure the key exists in visited_pixels
         # Update the visited_pixels dictionary with the new values
         if (new_x, new_y) not in visited_pixels:
-            visited_pixels[(new_x, new_y)] = {'probability': 0.0, 'pheromone': 1.0, 'flag': 0}
+            visited_pixels[(new_x, new_y)] = {'probability': 0.0, 'pheromone': 0.1, 'flag': 0}
     # Update only the 'probability' field with the maximum value
         visited_pixels[(new_x, new_y)]['probability'] = max(visited_pixels[(new_x, new_y)]['probability'], max_probability)
     # Add the new pheromone difference to the 'pheromone_differences' field
@@ -145,40 +149,29 @@ def main():
 # Tracks accumulated pixels and their data 
 # to be used for global update of pheromone values is a dict of dict
     visited_pixels = {}
-
     heuristic_matrix = None
     pheromone_matrix = None
-
     # Directory containing the image
     image_directory = r'C:\Users\ozgul\Documents\GitHub\Palm_Veins_Identity\images'
     image_filename = 'CroppedNoBGLightClose.png'
-
     # Full path to the image
     image_path = os.path.join(image_directory, image_filename)
-
     # Read the image
     img = Image.open(image_path)    
     # Convert to grayscale if it's not already
     if img.mode != 'L':
         img = img.convert('L')
-    
     # Convert image to numpy array as type float
-    img_array = np.array(img, dtype=np.float32)
-    
+    img_array = np.array(img, dtype=np.float32) 
     # Get image dimensions
     height, width = img_array.shape
-    
-    #global pheromone_matrix  # Declare pheromone_matrix as global   
-    # Create pheromone_matrix with random values < 10; should be set to 0
-    pheromone_matrix = np.random.rand(height, width).astype(np.float32)
-
-    #global ant_position  # Declare ant_position as global
+    # Create pheromone_matrix initialized with 0.1 for all pixels in the image
+    pheromone_matrix = np.full((height, width), 0.1, dtype=np.float32)
     # Initialize ant_position with 1 for all pixels in the image
     ant_position = {(x, y): 1 for x in range(width) for y in range(height)}
 
-    #global visited_pixels  # Declare visited_pixels as global
     # Initialize visited_pixels with 0 for all pixels in the image
-    visited_pixels = {(x, y): {'probability': 0.0, 'pheromone': 1.0, 'flag': 0} for x in range(width) for y in range(height)}
+    visited_pixels = {(x, y): {'probability': 0.0, 'pheromone': 0.1, 'flag': 0} for x in range(width) for y in range(height)}
     print(f"image in numpy :\n{img_array}")
     # Initialize heuristic_matrix
     heuristic_matrix = np.full_like(img_array, 0.1, dtype=np.float32)
